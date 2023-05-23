@@ -1,3 +1,5 @@
+import pathlib
+
 import dotenv
 import matplotlib.pyplot as plt
 import numpy as np
@@ -23,8 +25,8 @@ if __name__ == "__main__":
         # Plot the point
         ax.scatter(input_point[0][0], input_point[0][1], c="r", s=10)
         ax.axis("off")
-        fig.show()
-        input("Press enter to continue...")
+        save_path = pathlib.Path(image_file).name
+        fig.savefig(save_path)
 
         # parameters
         device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -46,37 +48,35 @@ if __name__ == "__main__":
         input_point = np.array(input_point)
         input_label = np.array(input_label)
         masks, scores, logits = predictor.predict(point_coords=input_point, point_labels=input_label)
-        masks = masks[0, ...]
 
-        # Crop image
-        crop_mode = (  # Optional['wo_bg', 'w_bg'], where w_bg and wo_bg refer to remain and discard background separately.
-            "wo_bg"
-        )
+        for i, (mask, _score, _logit) in enumerate(zip(masks, scores, logits)):
+            # Crop image
+            crop_mode = (  # Optional['wo_bg', 'w_bg'], where w_bg and wo_bg refer to remain and discard background separately.
+                "wo_bg"
+            )
 
-        if crop_mode == "wo_bg":
-            masked_image = image * masks[:, :, np.newaxis] + (1 - masks[:, :, np.newaxis]) * 255
-            masked_image = np.uint8(masked_image)
-        else:
-            masked_image = np.array(image)
-        masked_image = Image.fromarray(masked_image)
+            if crop_mode == "wo_bg":
+                masked_image = image * mask[:, :, np.newaxis] + (1 - mask[:, :, np.newaxis]) * 255
+                masked_image = np.uint8(masked_image)
+            else:
+                masked_image = np.array(image)
+            masked_image = Image.fromarray(masked_image)
 
-        from transformer_agents.utils import seg_to_box
+            from transformer_agents.utils import seg_to_box
 
-        size = max(masks.shape[0], masks.shape[1])
-        left, top, right, bottom = seg_to_box(
-            masks, size
-        )  # calculating the position of the top-left and bottom-right corners in the image
-        print(left, top, right, bottom)
+            size = max(mask.shape[0], mask.shape[1])
+            left, top, right, bottom = seg_to_box(
+                mask, size
+            )  # calculating the position of the top-left and bottom-right corners in the image
+            print(left, top, right, bottom)
 
-        image_crop = masked_image.crop((left * size, top * size, right * size, bottom * size))  # crop the image
+            image_crop = masked_image.crop((left * size, top * size, right * size, bottom * size))  # crop the image
 
-        # Display the image
-        print(f"Filename: {image_file}")
-        fig, ax = plt.subplots()
-        ax.imshow(masked_image)
-        ax.axis("off")
-        fig.show()
+            # Display the image
+            fig, ax = plt.subplots()
+            ax.imshow(masked_image)
+            ax.axis("off")
+            save_path = pathlib.Path(image_file).stem + f"_masked_{i}.jpg"
+            fig.savefig(save_path)
 
-        inp = input("[Q]uit, or press any key to continue...\n")
-        if inp.lower() == "q":
-            break
+        break
