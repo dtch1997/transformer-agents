@@ -78,5 +78,6 @@ if __name__ == "__main__":
             ax.axis("off")
             save_path = pathlib.Path(image_file).stem + f"_masked_{i}.jpg"
             fig.savefig(save_path)
+            plt.close()
 
-        break
+        torch.cuda.empty_cache()

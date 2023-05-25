@@ -26,6 +26,7 @@ if __name__ == "__main__":
         outputs = captioning_model(**encoding)
         logits = outputs.logits
         idx = logits.argmax(-1).item()
+        print("Image:", orig_fp)
         print("Predicted answer:", captioning_model.config.id2label[idx])
 
         # Load all masked images
@@ -37,6 +38,7 @@ if __name__ == "__main__":
             outputs = captioning_model(**encoding)
             logits = outputs.logits
             idx = logits.argmax(-1).item()
-            print("Predicted answer:", captioning_model.config.id2label[idx])
+            print(f"Predicted answer mask {masked_fp}:", captioning_model.config.id2label[idx])
+        print()
 
-        break
+    torch.cuda.empty_cache()
